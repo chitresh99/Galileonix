@@ -3,6 +3,8 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from pydantic import BaseModel
 import os
+import requests
+import json
 
 load_dotenv()
 
@@ -187,14 +189,17 @@ def business_problem(problem: Problem):
         "solution":completion
     }
 
+class Collection(BaseModel):
+    api_endpoint:str
 
 @app.post("/data-collection")
-def data_collection():
+def data_collection(api:Collection):
     # collect data from multiple source
     # api basic hit to any endpoint
     # connect to sql db's
     # then put these together in a unfied source that is csv
-    pass
+    response = requests.get(api.api_endpoint)
+    return response.text
 
 
 @app.post("/data-cleaning")
