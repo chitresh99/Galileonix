@@ -9,6 +9,7 @@ from system_prompt import business_agent_system_prompt
 import psycopg2
 from AutoClean import AutoClean
 import pandas as pd
+import numpy as np
 
 load_dotenv()
 
@@ -97,7 +98,7 @@ def data_cleaning():
         df = pd.read_csv("messy_data.csv")
         pipeline = AutoClean(df)
         pipeline.output.to_csv("output.csv", index=False)
-        print("cleaned successfully")
+        return {"message":"Data cleaned successfully"}
     except Exception as e:
         print("error:", e)
 
@@ -109,13 +110,102 @@ def data_viz():
     # we'll viz on the frontend
     pass
 
+def clean_dict(d):
+    """convert numpy types, NaN, inf into JSON-safe values"""
+    if isinstance(d, dict):
+        return {k: clean_dict(v) for k, v in d.items()}
+    elif isinstance(d, list):
+        return [clean_dict(v) for v in d]
+    elif pd.isna(d):
+        return None
+    elif isinstance(d, (np.int64, np.int32, np.int16)):
+        return int(d)
+    elif isinstance(d, (np.float64, np.float32, np.float16)):
+        return float(d)
+    return d
 
-@app.post("/assistant")
+@app.get("/assistant")
 def analytics():
     # upload csv
     # write a feedback engine
     # build analytics
-    pass
+    try:
+        file_path = "messy_data.csv"
+        df = pd.read_csv(file_path)
+
+        report = {}
+
+        # 1. basic info
+        report["basic_info"] = {
+            "shape": f"{df.shape[0]} rows × {df.shape[1]} columns",
+            "file_size_kb": round(os.path.getsize(file_path) / 1024, 2)
+        }
+
+        # 2. column info
+        report["columns"] = [
+            {"index": i, "name": col, "dtype": str(df[col].dtype)}
+            for i, col in enumerate(df.columns, 1)
+        ]
+
+        # 3. data types summary
+        dtype_counts = df.dtypes.value_counts()
+        report["data_types_summary"] = {
+            str(dtype): int(count) for dtype, count in dtype_counts.items()
+        }
+
+        # 4. missing values
+        missing = df.isnull().sum()
+        missing_percent = (missing / len(df)) * 100
+        missing_report = {
+            col: {"count": int(missing[col]), "percent": round(missing_percent[col], 1)}
+            for col in df.columns if missing[col] > 0
+        }
+        report["missing_values"] = (
+            missing_report if missing_report else "no missing values found"
+        )
+
+        # 5. first 3 rows
+        report["first_3_rows"] = clean_dict(df.head(3).to_dict(orient="records"))
+
+        # 6. numeric columns summary
+        numeric_cols = df.select_dtypes(include=[np.number]).columns
+        if len(numeric_cols) > 0:
+            report["numeric_summary"] = clean_dict(
+                df[numeric_cols].describe().round(2).to_dict()
+            )
+
+        # 7. categorical columns info
+        categorical_cols = df.select_dtypes(include=['object']).columns
+        categorical_info = {}
+        for col in categorical_cols:
+            unique_count = df[col].nunique()
+            if unique_count <= 10:
+                values = df[col].dropna().unique().tolist()
+            else:
+                values = df[col].value_counts().head(3).to_dict()
+            categorical_info[col] = {
+                "unique_count": int(unique_count),
+                "values": clean_dict(values)
+            }
+        if categorical_info:
+            report["categorical_columns"] = categorical_info
+
+        # 8. potential issues
+        issues = []
+        duplicates = df.duplicated().sum()
+        if duplicates > 0:
+            issues.append(f"duplicate rows: {duplicates}")
+        for col in df.columns:
+            if df[col].nunique() == 1:
+                issues.append(f"column '{col}' has only one unique value")
+            if missing_percent[col] > 50:
+                issues.append(f"column '{col}' has >50% missing values")
+        report["potential_issues"] = issues if issues else "no obvious issues detected"
+
+        return clean_dict(report)
+
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @app.post("/reporter")
