@@ -103,12 +103,16 @@ def data_cleaning():
         print("error:", e)
 
 
-@app.post("/data-viz")
+# @app.get("/data-viz") #for now , post later
 def data_viz():
     # get the info from the dataset
     # then return the stats
     # we'll viz on the frontend
-    pass
+    df = pd.read_csv("messy_data.csv")
+    profile = ProfileReport(df, title="Dataset Analysis Report")
+    profile.to_file("report.html")
+
+data_viz()
 
 def clean_dict(d):
     """convert numpy types, NaN, inf into JSON-safe values"""
@@ -210,7 +214,5 @@ def analytics():
 
 @app.post("/reporter")
 def reporter():
-    # csv -> get stats -> report
-    # connect to db run queries basic sql one's via ai
-    # get a detailed report
+    # make a pdf/report of the findings
     pass
