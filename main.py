@@ -31,7 +31,7 @@ The requirements to build basic galileonix are
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to DAK, this is Trixy"}
+    return {"message": "Welcome to Galileonix, this is Trixy"}
 
 
 class Problem(BaseModel):
