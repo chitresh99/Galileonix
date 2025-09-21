@@ -4,3 +4,4 @@ fastapi[standard]
 openai
 black
 requests
+psycopg2-binary

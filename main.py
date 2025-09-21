@@ -6,6 +6,7 @@ import os
 import requests
 import json
 from system_prompt import business_agent_system_prompt
+import psycopg2
 
 load_dotenv()
 
@@ -69,12 +70,21 @@ def data_collection(api:Collection):
     # collect data from multiple source
     # api basic hit to any endpoint
     response = requests.get(api.api_endpoint)
-    return response.text
+    # return response.text
     # connect to sql db's
-
-    # then put these together in a unfied source that is csv
-    
-
+    DB_STRING=os.getenv("DB_STRING")
+    conn=psycopg2.connect(DB_STRING)
+    print("Connection to PostgreSQL successful!")
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM users;") # just a sample we change according to our needs
+    rows = cur.fetchall()
+    print("Data from 'users' table:")
+    for row in rows:
+        row = row
+    return (
+        response.text,
+        row
+    )
 
 @app.post("/data-cleaning")
 def data_cleaning():
