@@ -433,3 +433,4 @@ __marimo__/
 .streamlit/secrets.toml
 
 /galileonix
+*.csv

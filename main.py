@@ -7,6 +7,8 @@ import requests
 import json
 from system_prompt import business_agent_system_prompt
 import psycopg2
+from AutoClean import AutoClean
+import pandas as pd
 
 load_dotenv()
 
@@ -86,12 +88,18 @@ def data_collection(api:Collection):
         row
     )
 
-@app.post("/data-cleaning")
+@app.get("/data-cleaning")
 def data_cleaning():
     # clean data using autoclean or i'll write a simple custom script
     # first provide insights then use autoclean to clean the data
     # return the final file
-    pass
+    try:
+        df = pd.read_csv("messy_data.csv")
+        pipeline = AutoClean(df)
+        pipeline.output.to_csv("output.csv", index=False)
+        print("cleaned successfully")
+    except Exception as e:
+        print("error:", e)
 
 
 @app.post("/data-viz")

@@ -5,3 +5,5 @@ openai
 black
 requests
 psycopg2-binary
+py-AutoClean
+pandas
